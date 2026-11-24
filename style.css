@@ -125,3 +125,9 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
   .stack td{display:block;width:auto}
   .tablewrap{overflow:visible}
 }
+
+/* account links + settings */
+.acct{display:flex;gap:14px;align-items:center}
+.acct a[aria-current]{color:#fff;text-decoration:underline}
+.fees{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.fees label{display:grid;gap:4px;font-size:14px;color:var(--mute)}

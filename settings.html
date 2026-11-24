@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gym Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1795538387"></head>
+<body>
+<header id="nav"></header>
+<main class="band">
+  <h1>Plan fees</h1>
+  <form class="panel" id="f" style="max-width:640px;display:grid;gap:16px">
+    <p class="sub" style="margin:0">Ye fees sirf tumhare gym ke liye hain. Naye member aur plan switch pe yahi lagegi.</p>
+    <div class="fees" id="fees"></div>
+    <p class="sub" style="font-size:14px;margin:0">Purane members ki fee aur purane payments nahi badlenge. Kisi member ki fee badalni ho toh uska plan dobara chuno.</p>
+    <div class="actions">
+      <button class="btn red" type="submit" id="save">Fees save karo</button>
+      <button class="btn ghost" type="button" id="def">Default fees</button>
+    </div>
+  </form>
+</main>
+<script src="config.js?v=1795538387"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script>
+<script src="data.js?v=1795538387"></script>
+<script>
+(async () => {
+  const { PLANS, PLAN_NAMES, DEFAULT_FEES, toast, fail } = G;
+  if (!(await G.boot('settings.html'))) return;
+  const box = document.getElementById('fees');
+  const draw = fees => box.innerHTML = PLAN_NAMES.map(p =>
+    `<label>${p} (₹)<input type="number" inputmode="numeric" min="0" max="1000000" step="1" required data-plan="${p}" value="${fees[p]}"></label>`).join('');
+  draw(Object.fromEntries(PLAN_NAMES.map(p => [p, PLANS[p].fee])));
+
+  document.getElementById('def').addEventListener('click', () => draw(DEFAULT_FEES));
+  document.getElementById('f').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('save'); btn.disabled = true;
+    const fees = Object.fromEntries([...box.querySelectorAll('input')].map(i => [i.dataset.plan, Math.round(+i.value)]));
+    try { await G.saveFees(fees); toast('Fees save ho gayi'); }
+    catch (err) { fail(err); }
+    finally { btn.disabled = false; }
+  });
+})();
+</script>
+</body></html>

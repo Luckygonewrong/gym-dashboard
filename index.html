@@ -3,7 +3,7 @@
 <title>Gym Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=6"></head>
+<link rel="stylesheet" href="style.css?v=1795538387"></head>
 <body>
 <header id="nav"></header>
 <main class="band">
@@ -21,23 +21,22 @@
       <a class="btn red" href="reminders.html">Reminders bhejo</a>
     </section>
   </div>
-  <p class="note">Sample data, sirf prototype ke liye. <button class="btn ghost sm" id="reset" type="button">Reset data</button></p>
 </main>
-<script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="data.js?v=5"></script>
+<script src="config.js?v=1795538387"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script>
+<script src="data.js?v=1795538387"></script>
 <script>
 (async () => {
-  const { status, money, esc, dueText, today, reset } = G;
+  const { status, money, esc, dueText, today } = G;
   if (!(await G.boot('index.html'))) return;
-  if (G.live) document.getElementById('reset').hidden = true;
+  const monthTotal = key => G.db.stats.find(s => s.month === key)?.total || 0;
   const render = () => {
     const ms = G.db.members;
     const over = ms.filter(m => status(m) === 'overdue');
     const soon = ms.filter(m => status(m) === 'due');
     const pending = over.reduce((s,m) => s + m.fee, 0);
     const ym = G.iso(today).slice(0,7);
-    const thisMonth = G.db.payments.filter(p => p.date.startsWith(ym)).reduce((s,p) => s + p.amt, 0);
+    const thisMonth = monthTotal(ym);
 
     document.getElementById('date').textContent = today.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
     document.getElementById('headline').textContent = over.length
@@ -57,7 +56,7 @@
     for (let i = 5; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
       const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-      months.push({ label: d.toLocaleDateString('en-IN', { month:'short' }), total: G.db.payments.filter(p => p.date.startsWith(key)).reduce((s,p)=>s+p.amt,0), now: i === 0 });
+      months.push({ label: d.toLocaleDateString('en-IN', { month:'short' }), total: monthTotal(key), now: i === 0 });
     }
     const max = Math.max(...months.map(m => m.total), 1);
     document.getElementById('chart').innerHTML = months.map(m =>
@@ -69,7 +68,6 @@
       : '<li class="empty">Koi pending nahi</li>';
   };
   render();
-  document.getElementById('reset').addEventListener('click', () => { reset(); render(); G.toast('Sample data reset ho gaya'); });
 })();
 </script>
 </body></html>

@@ -3,7 +3,7 @@
 <title>Gym Owner Login</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=6"></head>
+<link rel="stylesheet" href="style.css?v=1795538387"></head>
 <body>
 <main class="login">
   <form class="card" id="f">
@@ -18,17 +18,16 @@
     <p class="note" id="mode" style="margin:0"></p>
   </form>
 </main>
-<script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="data.js?v=5"></script>
+<script src="config.js?v=1795538387"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script>
+<script src="data.js?v=1795538387"></script>
 <script>
 (async () => {
   const f = document.getElementById('f'), err = document.getElementById('err'), go = document.getElementById('go');
-  document.getElementById('mode').textContent = G.live
+  document.getElementById('mode').textContent = G.ready
     ? 'Account sirf Supabase dashboard se banta hai. Naya signup band hai.'
-    : 'Demo mode: koi bhi email/password chalega. Asli login ke liye config.js bharo.';
-  if (!G.live) document.getElementById('u').value = 'owner@ironhouse.in';
-  if (G.live && await G.loggedIn()) location.href = 'index.html';
+    : 'Setup adhoora hai: config.js mein Supabase url aur key daalo.';
+  if (G.ready && await G.loggedIn()) location.href = 'index.html';
 
   f.addEventListener('submit', async e => {
     e.preventDefault(); err.textContent = ''; go.disabled = true; go.textContent = 'Login ho raha hai…';
