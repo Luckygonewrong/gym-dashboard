@@ -1,11 +1,11 @@
-# Iron House Gym: owner dashboard
+# Iron House: gym management
 
 Static site (GitHub Pages) + Supabase (database + login). Total cost: ₹0.
 
 ## Setup (10 min)
 
 1. **Supabase project banao** at supabase.com (free tier). Region: Mumbai (ap-south-1).
-2. **Schema chalao:** SQL Editor → New query → `schema.sql` paste → Run.
+2. **Schema chalao:** SQL Editor → New query → `schema.sql` paste → Run. Phir `migrations/002_payments_settings.sql` bhi Run karo.
 3. **Signup band karo:** Authentication settings mein "Allow new users to sign up" OFF karo.
    Isse sirf tumhara banaya account login kar payega.
 4. **Owner account banao:** Authentication → Users → Add user → email + password ("Auto confirm" on).
@@ -23,7 +23,9 @@ Static site (GitHub Pages) + Supabase (database + login). Total cost: ₹0.
 | `login.html` | Email + password login (Supabase Auth) |
 | `index.html` | Dashboard: pending amount, KPIs, 6 mahine ka collection |
 | `members.html` | Members ki list, search, add, delete |
-| `fees.html` | Pending fees, "Paid" button (`mark_paid` RPC), is mahine ke payments |
+| `fees.html` | Pending fees, quick "Paid" button, is mahine ke payments |
+| `payments.html` | Payment lo: plan switch, discount, mode (Cash/UPI/Card/Bank), note, history (`record_payment` RPC) |
+| `settings.html` | Gym ka naam + plan fees (har owner ke alag) |
 | `reminders.html` | WhatsApp `wa.me` links, message template |
 | `data.js` | Supabase/demo data layer + helpers |
 | `schema.sql` | Tables, RLS policies, `mark_paid` function |

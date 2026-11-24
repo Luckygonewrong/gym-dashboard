@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<header id="nav"></header>
+<main class="band">
+  <h1>Payment lo</h1>
+  <div class="grid2">
+    <form class="panel pay" id="f">
+      <label>Member
+        <select id="mem" required></select>
+      </label>
+      <div>
+        <p class="sub" style="font-size:14px;margin:0 0 6px">Plan (badalna ho toh dusra chuno)</p>
+        <div class="seg" id="plans" role="group" aria-label="Plan"></div>
+      </div>
+      <div class="row">
+        <label>Amount (₹)<input id="amt" type="number" inputmode="numeric" min="0" step="1" required></label>
+        <label>Payment date<input id="date" type="date" required></label>
+      </div>
+      <div>
+        <p class="sub" style="font-size:14px;margin:0 0 6px">Mode</p>
+        <div class="seg" id="modes" role="group" aria-label="Payment mode"></div>
+      </div>
+      <label>Note (optional)<input id="note" maxlength="120" placeholder="e.g. Diwali offer, UPI ref 4521"></label>
+      <button class="btn red" type="submit" id="save">Payment save karo</button>
+    </form>
+
+    <section>
+      <div class="preview" id="preview" aria-live="polite"></div>
+      <div class="panel" style="margin-top:16px">
+        <h2 id="histTitle">Is member ki history</h2>
+        <ul class="list" id="memHist"></ul>
+      </div>
+    </section>
+  </div>
+
+  <h2 style="margin-top:32px">Saare payments</h2>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Naam se dhoondo" aria-label="Search payments" style="flex:1 1 220px">
+    <span class="sub" id="sum"></span>
+  </div>
+  <div class="tablewrap">
+    <table class="stack">
+      <thead><tr><th>Date</th><th>Member</th><th>Plan</th><th>Mode</th><th class="num">Amount</th><th>Note</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="note">Plan switch karne pe agli due date naye plan ke hisaab se lagti hai: purani due date ya payment date (jo baad mein ho) + plan ke mahine.</p>
+</main>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="data.js"></script>
+<script>
+(async () => {
+  const { PLANS, PLAN_NAMES, MODES, money, esc, nice, dueText, status, nextDue, iso, today, toast, fail } = G;
+  if (!(await G.boot('payments.html'))) return;
+  const $ = id => document.getElementById(id);
+  const mem = $('mem'), amt = $('amt'), date = $('date'), note = $('note');
+  let plan = null, mode = 'Cash';
+  date.value = date.max = iso(today);
+
+  const fillMembers = keep => {
+    const ms = [...G.db.members].sort((a,b) => a.name.localeCompare(b.name));
+    mem.innerHTML = '<option value="">Member chuno…</option>' + ms.map(m =>
+      `<option value="${m.id}">${esc(m.name)} · ${esc(m.plan)} · ${dueText(m)}</option>`).join('');
+    if (keep) mem.value = keep;
+  };
+  const cur = () => G.db.members.find(m => m.id === +mem.value);
+
+  const drawSeg = () => {
+    $('plans').innerHTML = PLAN_NAMES.map(p => `<button type="button" data-plan="${p}" aria-pressed="${p === plan}">${p} · ${money(PLANS[p].fee)}</button>`).join('');
+    $('modes').innerHTML = MODES.map(x => `<button type="button" data-mode="${x}" aria-pressed="${x === mode}">${x}</button>`).join('');
+  };
+
+  const preview = () => {
+    const m = cur(), box = $('preview');
+    if (!m || !plan) { box.innerHTML = '<span>Member chuno, preview yahan dikhega</span>'; $('memHist').innerHTML = ''; $('histTitle').textContent = 'Is member ki history'; return; }
+    const d = date.value || iso(today), n = nextDue(m, plan, d), a = +amt.value || 0, fee = PLANS[plan].fee;
+    box.innerHTML = `<span>Agli due date</span><b>${nice(n)}</b>
+      ${plan !== m.plan ? `<span class="switch">Plan switch: ${esc(m.plan)} → ${esc(plan)}</span>` : `<span>${esc(plan)} renew</span>`}
+      <span>Abhi due: ${nice(m.due)} (${dueText(m)})</span>
+      ${a < fee ? `<span class="switch">${money(fee - a)} discount</span>` : a > fee ? `<span class="switch">${money(a - fee)} extra</span>` : ''}`;
+    const h = G.db.payments.filter(p => p.id === m.id);
+    $('histTitle').textContent = `${m.name} ki history`;
+    $('memHist').innerHTML = h.length ? h.slice(0, 8).map(p => `<li><span><span class="who">${money(p.amt)}</span><span class="meta">${esc(p.plan || '')} · ${esc(p.mode || '')}${p.note ? ' · ' + esc(p.note) : ''}</span></span><span class="sub">${nice(p.date)}</span></li>`).join('')
+      : '<li class="empty">Abhi koi payment nahi</li>';
+  };
+
+  const selectMember = () => {
+    const m = cur();
+    plan = m ? m.plan : null;
+    amt.value = m ? PLANS[plan].fee : '';
+    drawSeg(); preview();
+  };
+
+  const table = () => {
+    const s = $('q').value.trim().toLowerCase();
+    const name = id => G.db.members.find(m => m.id === id)?.name || 'Purana member';
+    const list = G.db.payments.filter(p => !s || name(p.id).toLowerCase().includes(s));
+    $('sum').textContent = `${list.length} payments · ${money(list.reduce((t,p) => t + p.amt, 0))}`;
+    $('rows').innerHTML = list.length ? list.slice(0, 200).map(p => `<tr><td>${nice(p.date)}</td><td><b>${esc(name(p.id))}</b></td><td>${esc(p.plan || '—')}</td><td>${esc(p.mode || '—')}</td><td class="num">${money(p.amt)}</td><td>${esc(p.note)}</td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty">Koi payment nahi mila</td></tr>';
+  };
+
+  $('plans').addEventListener('click', e => { const b = e.target.closest('[data-plan]'); if (!b) return; plan = b.dataset.plan; amt.value = PLANS[plan].fee; drawSeg(); preview(); });
+  $('modes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; mode = b.dataset.mode; drawSeg(); });
+  mem.addEventListener('change', () => { try { history.replaceState(null, '', mem.value ? '#m' + mem.value : location.pathname); } catch {} selectMember(); });
+  amt.addEventListener('input', preview);
+  date.addEventListener('input', preview);
+  $('q').addEventListener('input', table);
+
+  $('f').addEventListener('submit', async e => {
+    e.preventDefault();
+    const m = cur(); if (!m || !plan) return toast('Pehle member chuno');
+    const btn = $('save'); btn.disabled = true; btn.textContent = 'Save ho raha hai…';
+    try {
+      const was = m.plan;
+      await G.recordPayment({ id: m.id, plan, amount: Math.round(+amt.value), mode, date: date.value, note: note.value.trim() });
+      toast(`${m.name}: ${money(+amt.value)} mila${was !== plan ? `, plan ${was} → ${plan}` : ''}. Agli due ${nice(m.due)}`);
+      note.value = ''; fillMembers(m.id); selectMember(); table();
+    } catch (err) { fail(err); }
+    finally { btn.disabled = false; btn.textContent = 'Payment save karo'; }
+  });
+
+  fillMembers();
+  const h = location.hash.match(/^#m(\d+)$/);
+  if (h && G.db.members.some(m => m.id === +h[1])) mem.value = h[1];
+  selectMember(); table();
+})();
+</script>
+</body></html>
