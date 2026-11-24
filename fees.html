@@ -18,7 +18,7 @@
       <tbody id="rows"></tbody>
     </table>
   </div>
-  <p class="note">"Paid" dabane pe agli due date plan ke hisaab se aage badh jaati hai. <span class="demo-only">Sample data, sirf prototype ke liye.</span></p>
+  <p class="note">"Paid" dabane pe agli due date plan ke hisaab se aage badh jaati hai. Sample data, sirf prototype ke liye.</p>
 </main>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -46,7 +46,7 @@
         <td><b>${esc(m.name)}</b></td><td>${esc(m.plan)}</td><td class="num">${money(m.fee)}</td>
         <td>${nice(m.due)} <span class="sub">· ${dueText(m)}</span></td>
         <td><span class="chip ${status(m)}">${LABEL[status(m)]}</span></td>
-        <td><span class="tools" style="margin:0;flex-wrap:nowrap"><button class="btn sm" data-pay="${m.id}" type="button">Paid ✓</button><a class="btn ghost sm" href="payments.html#m${m.id}">Plan badlo</a></span></td></tr>`).join('')
+        <td><button class="btn sm" data-pay="${m.id}" type="button">Paid ✓</button></td></tr>`).join('')
         : '<tr><td colspan="6" class="empty">Sab clear hai</td></tr>';
     } else {
       const total = paid.reduce((s,p) => s + p.amt, 0);

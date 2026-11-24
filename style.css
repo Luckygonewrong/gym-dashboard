@@ -85,23 +85,3 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .login .card input{width:100%}
 
 @media(max-width:600px){table{font-size:14px}.stack thead{display:none}.stack tr{display:grid;padding:10px 12px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:7em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:6.5em;margin-inline-start:-7em;color:var(--mute)}.stack td:empty{display:none}}
-
-/* brand + setup banner */
-.brand>span:last-child{display:flex;flex-direction:column;line-height:1}
-.brand .by{font:500 12px/1.2 Barlow,sans-serif;color:#a8a59d;margin-top:3px}
-.setup{background:var(--yellow);color:#161616;padding:10px max(4vw,16px);font-weight:600}
-.setup a{color:#161616}
-
-/* payments */
-.pay{display:grid;gap:14px}
-.pay label{display:grid;gap:4px;font-size:14px;color:var(--mute)}
-.pay .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.seg{display:flex;flex-wrap:wrap;gap:6px}
-.seg button{min-height:40px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.preview{border-radius:10px;padding:16px 18px;background:var(--rubber);color:#f2f1ec;display:grid;gap:4px}
-.preview b{font:700 clamp(28px,4vw,36px)/1.05 "Barlow Condensed",sans-serif}
-.preview .switch{color:var(--yellow);font-weight:600}
-.preview span{color:#cfcdc6;font-size:14px}
-.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
-.live .demo-only{display:none}
