@@ -8,19 +8,14 @@ const DAY = 86400000;
 const PAGE = 1000; // Supabase ek baar mein max 1000 rows deta hai
 const PLAN_NAMES = ['Monthly','Quarterly','Half-yearly','Yearly'];
 const DEFAULT_FEES = { Monthly:1200, Quarterly:3300, 'Half-yearly':6000, Yearly:10500 };
-const PLANS = { Monthly:{m:1}, Quarterly:{m:3}, 'Half-yearly':{m:6}, Yearly:{m:12} };
+// Plan ki lambai dinon mein (database ke record_payment jaisa)
+const PLANS = { Monthly:{days:30}, Quarterly:{days:90}, 'Half-yearly':{days:180}, Yearly:{days:365} };
 const TEMPLATE = 'Namaste {name}! Aapki {plan} fees ₹{amount} ki due date {date} hai. Please time pe jama kar dein. Dhanyavaad 🙏';
 const MEMBER_COLS = 'id,name,phone,plan,fee,due,reminded_on';
 
 const today = new Date(); today.setHours(0,0,0,0);
 const iso = t => { const d = new Date(t); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
-// Postgres jaisa: 31 Jan + 1 mahina = 28/29 Feb
-const addMonths = (s, n) => {
-  const d = new Date(s+'T00:00:00'), day = d.getDate();
-  d.setDate(1); d.setMonth(d.getMonth()+n);
-  d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth()+1, 0).getDate()));
-  return iso(d);
-};
+const addDays = (s, n) => { const d = new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return iso(d); };
 const applyFees = fees => PLAN_NAMES.forEach(p => PLANS[p].fee = Number(fees?.[p] ?? DEFAULT_FEES[p]));
 applyFees(DEFAULT_FEES);
 
@@ -71,7 +66,7 @@ async function deleteMember(id){
   db.members = db.members.filter(m => m.id !== id);
 }
 // Agli due date. from: 'today' = aaj se, 'due' = jab se due tha
-const nextDue = (m, plan, from) => addMonths(from === 'today' ? iso(today) : m.due, PLANS[plan].m);
+const nextDue = (m, plan, from) => addDays(from === 'today' ? iso(today) : m.due, PLANS[plan].days);
 
 async function payMember(id, { plan, amount, mode = 'Cash', from = 'due' }){
   const m = db.members.find(x => x.id === id); if (!m) throw new Error('Member nahi mila');
@@ -144,6 +139,6 @@ async function boot(cur){
 new MutationObserver(() => { for (const c of document.querySelectorAll('.stack td:not([data-l])')) { let i=0,p=c; while (p = p.previousElementSibling) i += p.colSpan; c.dataset.l = c.closest('table').rows[0].cells[i]?.textContent || ''; } })
   .observe(document, { childList:true, subtree:true });
 
-window.G = { ready, PLANS, PLAN_NAMES, DEFAULT_FEES, today, iso, addMonths, boot, daysLeft, status, LABEL, money, esc, nice, dueText, nextDue,
+window.G = { ready, PLANS, PLAN_NAMES, DEFAULT_FEES, today, iso, addDays, boot, daysLeft, status, LABEL, money, esc, nice, dueText, nextDue,
   addMember, deleteMember, payMember, markSent, saveTemplate, saveFees, signIn, loggedIn, toast, fail, get db(){ return db; } };
 }

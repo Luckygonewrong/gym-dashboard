@@ -12,17 +12,19 @@ insert into members(name,phone,plan,fee,due) values
 do $$
 declare d date; f int;
 begin
-  -- aaj se: today + 1 month
+  -- aaj se: today + 30 din
   d := record_payment(1,'Monthly',1000,'Cash',current_date,null,'today');
-  assert d = (current_date + interval '1 month')::date, 'today failed';
+  assert d = current_date + 30, 'today failed';
   -- due se, early payer
   d := record_payment(2,'Monthly',1000,'Online',current_date,null,'due');
-  assert d = (current_date + 10 + interval '1 month')::date, 'due failed';
-  -- 31 Jan + 1 month = 28 Feb (month end clamp), plan switch with discount
+  assert d = current_date + 10 + 30, 'due failed';
+  -- Feb ki koi confusion nahi: 31 Jan + 30 din = 2 Mar; plan switch with discount
   d := record_payment(3,'Monthly',500,'Cash','2026-01-15',null,'due');
-  assert d = '2026-02-28', 'month-end clamp failed: ' || d;
+  assert d = '2026-03-02', '30-day failed: ' || d;
   select fee into f from members where id = 3;
   assert f = 1000, 'switch should store standard fee, got ' || f;
+  -- har plan ke din
+  assert plan_days('Quarterly') = 90 and plan_days('Half-yearly') = 180 and plan_days('Yearly') = 365, 'plan days wrong';
   -- same plan with discount keeps old fee
   perform record_payment(1,'Monthly',700,'Cash',current_date,null,'auto');
   select fee into f from members where id = 1;

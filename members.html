@@ -44,8 +44,8 @@
   document.getElementById('fPlan').innerHTML = Object.entries(PLANS).map(([k,v]) => `<option value="${k}">${k} · ${money(v.fee)}</option>`).join('');
   const fJoin = document.getElementById('fJoin'), fPlan = document.getElementById('fPlan'), fNext = document.getElementById('fNext');
   fJoin.value = fJoin.max = iso(today);
-  // Joining ke din pehli fees mili: agli due = joining date + plan ke mahine
-  const firstDue = () => fJoin.value ? G.addMonths(fJoin.value, PLANS[fPlan.value].m) : '';
+  // Joining ke din pehli fees mili: agli due = joining date + plan ke din
+  const firstDue = () => fJoin.value ? G.addDays(fJoin.value, PLANS[fPlan.value].days) : '';
   const showNext = () => { const d = firstDue(); fNext.textContent = d ? `Agli fees due: ${nice(d)}` : ''; };
   fJoin.addEventListener('input', showNext); fPlan.addEventListener('change', showNext); showNext();
 

@@ -75,6 +75,17 @@ as $$
   );
 $$;
 
+-- ========== Plan ki lambai dinon mein: Monthly 30, Quarterly 90, Half-yearly 180, Yearly 365 ==========
+create or replace function public.plan_days(p_plan text)
+returns integer
+language sql
+immutable
+set search_path = public
+as $$
+  select case p_plan when 'Monthly' then 30 when 'Quarterly' then 90
+                     when 'Half-yearly' then 180 when 'Yearly' then 365 end;
+$$;
+
 -- ========== Payment: plan switch, Cash/Online, aaj se ya due date se ==========
 -- p_from: 'today' = aaj se, 'due' = jab se due tha, 'auto' = jo baad mein ho
 create or replace function public.record_payment(
@@ -87,28 +98,25 @@ create or replace function public.record_payment(
   p_from    text default 'auto'
 ) returns date
 language plpgsql
-security invoker            -- RLS lagu rehta hai
+security invoker
 set search_path = public
 as $$
 declare
   m       public.members;
   paid    date := coalesce(p_paid_on, (now() at time zone 'Asia/Kolkata')::date);
-  months  int;
+  days    int := public.plan_days(p_plan);
   start   date;
   new_due date;
 begin
   select * into m from public.members where id = p_member for update;
   if not found then raise exception 'Member nahi mila'; end if;
   if p_amount is null or p_amount < 0 then raise exception 'Amount galat hai'; end if;
-
-  months := case p_plan when 'Monthly' then 1 when 'Quarterly' then 3
-                        when 'Half-yearly' then 6 when 'Yearly' then 12 end;
-  if months is null then raise exception 'Plan galat hai: %', p_plan; end if;
+  if days is null then raise exception 'Plan galat hai: %', p_plan; end if;
 
   start := case p_from when 'today' then paid
                        when 'due'   then m.due
                        else greatest(m.due, paid) end;
-  new_due := (start + make_interval(months => months))::date;
+  new_due := start + days;
 
   insert into public.payments (member_id, amount, paid_on, plan, mode, note)
   values (p_member, p_amount, paid, p_plan, coalesce(p_mode, 'Cash'), nullif(trim(p_note), ''));
@@ -139,9 +147,11 @@ as $$
   order by 1;
 $$;
 
+revoke execute on function public.plan_days(text) from public, anon;
 revoke execute on function public.plan_fee(uuid, text) from public, anon;
 revoke execute on function public.record_payment(bigint, text, integer, text, date, text, text) from public, anon;
 revoke execute on function public.monthly_collection(integer) from public, anon;
+grant  execute on function public.plan_days(text) to authenticated;
 grant  execute on function public.plan_fee(uuid, text) to authenticated;
 grant  execute on function public.record_payment(bigint, text, integer, text, date, text, text) to authenticated;
 grant  execute on function public.monthly_collection(integer) to authenticated;

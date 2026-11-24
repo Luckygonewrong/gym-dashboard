@@ -26,7 +26,7 @@ Static site (GitHub Pages) + Supabase (database + login). Total cost: ₹0.
 | `login.html` | Email + password login (Supabase Auth) |
 | `index.html` | Dashboard: pending amount, KPIs, 6 mahine ka collection (`monthly_collection` RPC) |
 | `members.html` | Members ki list, search, add, delete |
-| `fees.html` | Pending fees, "Paid" form: plan, Cash/Online, aaj se ya due date se (`record_payment` RPC) |
+| `fees.html` | Pending fees, "Paid" form: plan, Cash/Online, aaj se ya due date se (`record_payment` RPC). Plan: Monthly 30 din, Quarterly 90, Half-yearly 180, Yearly 365 |
 | `reminders.html` | WhatsApp `wa.me` links, message template |
 | `settings.html` | Har owner ki apni plan fees |
 | `data.js` | Supabase data layer + helpers |
