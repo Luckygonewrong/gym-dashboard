@@ -117,3 +117,11 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
   .tabs .btn{flex:1}
   .tools>*{flex:1 1 100%}
 }
+
+/* iOS Safari: phone pe table ko poori tarah block bana do, warna cards ek line mein chhup jaate hain */
+@media(max-width:600px){
+  .stack,.stack tbody{display:block;width:100%}
+  .stack tr{display:block;width:100%;padding:12px 14px}
+  .stack td{display:block;width:auto}
+  .tablewrap{overflow:visible}
+}
