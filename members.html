@@ -20,7 +20,8 @@
     <label>Naam<input id="fName" required></label>
     <label>Phone (10 digit)<input id="fPhone" inputmode="numeric" pattern="[6-9][0-9]{9}" required></label>
     <label>Plan<select id="fPlan"></select></label>
-    <label>Pehli due date<input id="fDue" type="date" required></label>
+    <label>Joining date<input id="fJoin" type="date" required></label>
+    <p class="sub" id="fNext" style="margin:0;font-size:14px;align-self:center"></p>
     <button class="btn" type="submit">Save member</button>
   </form>
 
@@ -41,7 +42,12 @@
   const q = document.getElementById('q'), filter = document.getElementById('filter');
   const form = document.getElementById('addForm'), addBtn = document.getElementById('addBtn');
   document.getElementById('fPlan').innerHTML = Object.entries(PLANS).map(([k,v]) => `<option value="${k}">${k} · ${money(v.fee)}</option>`).join('');
-  document.getElementById('fDue').value = iso(today);
+  const fJoin = document.getElementById('fJoin'), fPlan = document.getElementById('fPlan'), fNext = document.getElementById('fNext');
+  fJoin.value = fJoin.max = iso(today);
+  // Joining ke din pehli fees mili: agli due = joining date + plan ke mahine
+  const firstDue = () => fJoin.value ? G.addMonths(fJoin.value, PLANS[fPlan.value].m) : '';
+  const showNext = () => { const d = firstDue(); fNext.textContent = d ? `Agli fees due: ${nice(d)}` : ''; };
+  fJoin.addEventListener('input', showNext); fPlan.addEventListener('change', showNext); showNext();
 
   const render = () => {
     const s = q.value.trim().toLowerCase(), f = filter.value;
@@ -64,9 +70,9 @@
     e.preventDefault();
     const btn = form.querySelector('button'); btn.disabled = true;
     const plan = document.getElementById('fPlan').value;
-    try { await G.addMember({ name: document.getElementById('fName').value.trim(), phone: document.getElementById('fPhone').value.trim(), plan, fee: PLANS[plan].fee, due: document.getElementById('fDue').value }); }
+    try { await G.addMember({ name: document.getElementById('fName').value.trim(), phone: document.getElementById('fPhone').value.trim(), plan, fee: PLANS[plan].fee, due: firstDue() }); }
     catch (err) { fail(err); return; } finally { btn.disabled = false; }
-    form.reset(); document.getElementById('fDue').value = iso(today); form.hidden = true; addBtn.setAttribute('aria-expanded', 'false');
+    form.reset(); fJoin.value = iso(today); showNext(); form.hidden = true; addBtn.setAttribute('aria-expanded', 'false');
     render(); toast('Member add ho gaya');
   });
   let pendingDel = null;
