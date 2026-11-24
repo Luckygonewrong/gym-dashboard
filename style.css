@@ -85,3 +85,35 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .login .card input{width:100%}
 
 @media(max-width:600px){table{font-size:14px}.stack thead{display:none}.stack tr{display:grid;padding:10px 12px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:7em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:6.5em;margin-inline-start:-7em;color:var(--mute)}.stack td:empty{display:none}}
+
+/* pay sheet (Fees → Paid) */
+.sheet{position:fixed;inset:0;background:rgb(0 0 0/.55);display:grid;place-items:center;padding:16px;z-index:10;overflow-y:auto}
+.sheet[hidden]{display:none}
+.sheet form{width:min(520px,100%);display:grid;gap:14px}
+.sheet h2{margin:0}
+.sheet label{display:grid;gap:4px;font-size:14px;color:var(--mute)}
+.grp{display:grid;gap:6px}.grp>span{font-size:14px;color:var(--mute)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{min-height:40px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.preview{border-radius:10px;padding:14px 16px;background:var(--rubber);color:#f2f1ec;display:grid;gap:2px}
+.preview b{font:700 32px/1.05 "Barlow Condensed",sans-serif}
+.preview span{color:#cfcdc6;font-size:14px}.preview .hi{color:var(--yellow);font-weight:600}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* phone layout */
+.bar nav a{flex:none}
+@media(max-width:720px){
+  .bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;padding:10px 12px}
+  .brand{font-size:21px}
+  .bar nav{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;overflow:visible}
+  .bar nav a{text-align:center;padding:10px 2px;background:#232323;font-size:14px}
+  .bar nav a[aria-current]{background:#2e2e2e}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi{padding:12px 14px}
+  .kpi b{font-size:28px}
+  .bars{gap:6px;height:200px}
+  .list li{flex-wrap:wrap}
+  .tabs .btn{flex:1}
+  .tools>*{flex:1 1 100%}
+}

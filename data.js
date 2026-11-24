@@ -13,7 +13,13 @@ const TEMPLATE = 'Namaste {name}! Iron House Gym ki {plan} fees ₹{amount} ki d
 const today = new Date(); today.setHours(0,0,0,0);
 const iso = t => { const d = new Date(t); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 const addDays = n => iso(today.getTime() + n*DAY);
-const addMonths = (s, n) => { const d = new Date(s+'T00:00:00'); d.setMonth(d.getMonth()+n); return iso(d); };
+// Postgres jaisa: 31 Jan + 1 mahina = 28/29 Feb
+const addMonths = (s, n) => {
+  const d = new Date(s+'T00:00:00'), day = d.getDate();
+  d.setDate(1); d.setMonth(d.getMonth()+n);
+  d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth()+1, 0).getDate()));
+  return iso(d);
+};
 
 // ---------- demo data ----------
 const SEED = [
@@ -36,7 +42,7 @@ function seed(){
     members.forEach((m,i) => {
       const pm = PLANS[m.plan].m;
       if (pm === 1 ? (i + k) % 7 !== 0 : (i + k) % pm === 0)
-        payments.push({ id:m.id, amt:m.fee, date: iso(new Date(base.getFullYear(), base.getMonth(), (i*3 % last) + 1)) });
+        payments.push({ id:m.id, amt:m.fee, plan:m.plan, mode: i % 2 ? 'Online' : 'Cash', date: iso(new Date(base.getFullYear(), base.getMonth(), (i*3 % last) + 1)) });
     });
   }
   return { members, payments, sent:{}, nextId: members.length+1, template: TEMPLATE };
@@ -56,12 +62,12 @@ async function init(){
   const since = iso(new Date(today.getFullYear(), today.getMonth()-5, 1));
   const [members, pays, set] = await Promise.all([
     sb.from('members').select('id,name,phone,plan,fee,due,reminded_on').order('due').then(must),
-    sb.from('payments').select('member_id,amount,paid_on').gte('paid_on', since).then(must),
+    sb.from('payments').select('member_id,amount,paid_on,plan,mode').gte('paid_on', since).then(must),
     sb.from('settings').select('template').maybeSingle().then(must)
   ]);
   db = {
     members,
-    payments: pays.map(p => ({ id:p.member_id, amt:p.amount, date:p.paid_on })),
+    payments: pays.map(p => ({ id:p.member_id, amt:p.amount, date:p.paid_on, plan:p.plan, mode:p.mode })),
     sent: Object.fromEntries(members.filter(m => m.reminded_on).map(m => [m.id, m.reminded_on])),
     template: set?.template || TEMPLATE
   };
@@ -77,13 +83,21 @@ async function deleteMember(id){
   if (live) must(await sb.from('members').delete().eq('id', id));
   db.members = db.members.filter(m => m.id !== id); save();
 }
-async function markPaid(id){
-  const m = db.members.find(x => x.id === id); if (!m) return;
-  if (live) m.due = must(await sb.rpc('mark_paid', { p_member: id }));
-  else m.due = addMonths(m.due < iso(today) ? iso(today) : m.due, PLANS[m.plan].m);
-  db.payments.push({ id, amt:m.fee, date:iso(today) });
+// Agli due date. from: 'today' = aaj se, 'due' = jab se due tha
+const nextDue = (m, plan, from) => addMonths(from === 'today' ? iso(today) : m.due, PLANS[plan].m);
+
+async function payMember(id, { plan, amount, mode = 'Cash', from = 'due' }){
+  const m = db.members.find(x => x.id === id); if (!m) throw new Error('Member nahi mila');
+  const due = live
+    ? must(await sb.rpc('record_payment', { p_member:id, p_plan:plan, p_amount:amount, p_mode:mode, p_from:from }))
+    : nextDue(m, plan, from);
+  if (plan !== m.plan) m.fee = amount;
+  Object.assign(m, { plan, due });
+  db.payments.push({ id, amt:amount, date:iso(today), plan, mode });
   delete db.sent[id]; save();
+  return m;
 }
+const markPaid = id => { const m = db.members.find(x => x.id === id); return payMember(id, { plan:m.plan, amount:m.fee }); };
 async function markSent(id){
   db.sent[id] = iso(today);
   if (live) must(await sb.from('members').update({ reminded_on: iso(today) }).eq('id', id));
@@ -143,5 +157,5 @@ new MutationObserver(() => { for (const c of document.querySelectorAll('.stack t
   .observe(document, { childList:true, subtree:true });
 
 window.G = { live, PLANS, today, iso, boot, reset, daysLeft, status, LABEL, money, esc, nice, dueText,
-  addMember, deleteMember, markPaid, markSent, saveTemplate, signIn, loggedIn, toast, fail, get db(){ return db; } };
+  addMember, deleteMember, markPaid, payMember, nextDue, markSent, saveTemplate, signIn, loggedIn, toast, fail, get db(){ return db; } };
 }

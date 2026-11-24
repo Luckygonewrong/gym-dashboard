@@ -3,7 +3,7 @@
 <title>Gym Fees</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css"></head>
+<link rel="stylesheet" href="style.css?v=5"></head>
 <body>
 <header id="nav"></header>
 <main class="band">
@@ -18,11 +18,26 @@
       <tbody id="rows"></tbody>
     </table>
   </div>
-  <p class="note">"Paid" dabane pe agli due date plan ke hisaab se aage badh jaati hai. Sample data, sirf prototype ke liye.</p>
+  <p class="note">"Paid" dabane pe plan, Cash/Online aur nayi due date kab se ginni hai, ye chuno.</p>
 </main>
+
+<div class="sheet" id="sheet" hidden>
+  <form class="panel" id="payForm" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+    <div><h2 id="pTitle">Payment</h2><p class="sub" id="pSub" style="margin:4px 0 0"></p></div>
+    <div class="grp"><span>Kaunse plan ke paise diye?</span><div class="seg" id="pPlans"></div></div>
+    <label>Amount (₹)<input id="pAmt" type="number" inputmode="numeric" min="0" step="1" required></label>
+    <div class="grp"><span>Kaise diye?</span><div class="seg" id="pModes"></div></div>
+    <div class="grp"><span>Naya plan kab se?</span><div class="seg" id="pFrom"></div></div>
+    <div class="preview" id="pPrev" aria-live="polite"></div>
+    <div class="actions">
+      <button class="btn red" type="submit" id="pSave">Paid save karo</button>
+      <button class="btn ghost" type="button" id="pCancel">Cancel</button>
+    </div>
+  </form>
+</div>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="data.js"></script>
+<script src="data.js?v=5"></script>
 <script>
 (async () => {
   const { status, money, esc, nice, dueText, LABEL, toast, today, fail } = G;
@@ -51,23 +66,66 @@
     } else {
       const total = paid.reduce((s,p) => s + p.amt, 0);
       document.getElementById('title').textContent = `Is mahine ${money(total)} aaye`;
-      head.innerHTML = '<tr><th>Naam</th><th>Date</th><th class="num">Amount</th><th>Status</th></tr>';
+      head.innerHTML = '<tr><th>Naam</th><th>Date</th><th>Plan</th><th>Mode</th><th class="num">Amount</th></tr>';
       rows.innerHTML = paid.length ? paid.map(p => {
         const m = ms.find(x => x.id === p.id);
-        return `<tr><td><b>${esc(m ? m.name : 'Purana member')}</b></td><td>${nice(p.date)}</td><td class="num">${money(p.amt)}</td><td><span class="chip paid">Paid</span></td></tr>`;
-      }).join('') : '<tr><td colspan="4" class="empty">Is mahine abhi tak koi payment nahi</td></tr>';
+        return `<tr><td><b>${esc(m ? m.name : 'Purana member')}</b></td><td>${nice(p.date)}</td><td>${esc(p.plan || '—')}</td><td>${esc(p.mode || '—')}</td><td class="num">${money(p.amt)}</td></tr>`;
+      }).join('') : '<tr><td colspan="5" class="empty">Is mahine abhi tak koi payment nahi</td></tr>';
     }
   };
 
   document.getElementById('tPending').addEventListener('click', () => { tab = 'pending'; render(); });
   document.getElementById('tPaid').addEventListener('click', () => { tab = 'paid'; render(); });
-  document.getElementById('rows').addEventListener('click', async e => {
+  // ---- Paid sheet ----
+  const $ = id => document.getElementById(id);
+  const sheet = $('sheet'), amt = $('pAmt');
+  const PLAN_NAMES = Object.keys(G.PLANS), MODES = ['Cash','Online'];
+  let cur = null, plan, mode, from, lastBtn;
+
+  const drawSheet = () => {
+    const seg = (items, val, key, label = x => x) => items.map(x => `<button type="button" data-${key}="${x}" aria-pressed="${x === val}">${label(x)}</button>`).join('');
+    $('pPlans').innerHTML = seg(PLAN_NAMES, plan, 'plan', p => `${p} · ${money(p === cur.plan ? cur.fee : G.PLANS[p].fee)}`);
+    $('pModes').innerHTML = seg(MODES, mode, 'mode');
+    $('pFrom').innerHTML = seg(['today','due'], from, 'from', f => f === 'today' ? 'Aaj se' : `Jab se due tha (${nice(cur.due)})`);
+    const n = G.nextDue(cur, plan, from);
+    $('pPrev').innerHTML = `<span>Agli due date</span><b>${nice(n)}</b>
+      ${plan !== cur.plan ? `<span class="hi">Plan switch: ${esc(cur.plan)} → ${esc(plan)}</span>` : `<span>${esc(plan)} renew</span>`}
+      ${n < G.iso(today) ? '<span class="hi">Dhyan do: ye date bhi nikal chuki hai, member abhi bhi overdue rahega</span>' : ''}`;
+  };
+  const openSheet = (m, btn) => {
+    cur = m; plan = m.plan; mode = 'Cash'; from = 'due'; lastBtn = btn;
+    amt.value = m.fee;
+    $('pTitle').textContent = `${m.name}: payment`;
+    $('pSub').textContent = `Abhi ${m.plan} · due ${nice(m.due)} (${dueText(m)})`;
+    drawSheet(); sheet.hidden = false; $('pSave').focus();
+  };
+  const closeSheet = () => { sheet.hidden = true; cur = null; lastBtn?.focus(); };
+
+  document.getElementById('rows').addEventListener('click', e => {
     const b = e.target.closest('[data-pay]'); if (!b) return;
-    const m = G.db.members.find(x => x.id === +b.dataset.pay);
-    b.disabled = true;
-    try { await G.markPaid(m.id); toast(`${m.name}: ${money(m.fee)} paid, agli due ${nice(m.due)}`); }
-    catch (err) { fail(err); b.disabled = false; return; }
-    render();
+    openSheet(G.db.members.find(x => x.id === +b.dataset.pay), b);
+  });
+  $('payForm').addEventListener('click', e => {
+    const b = e.target.closest('button[type=button]'); if (!b || b.id === 'pCancel') return;
+    if (b.dataset.plan) { plan = b.dataset.plan; amt.value = plan === cur.plan ? cur.fee : G.PLANS[plan].fee; }
+    if (b.dataset.mode) mode = b.dataset.mode;
+    if (b.dataset.from) from = b.dataset.from;
+    drawSheet();
+  });
+  $('pCancel').addEventListener('click', closeSheet);
+  sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
+  $('payForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = $('pSave'), m = cur, a = Math.round(+amt.value);
+    btn.disabled = true; btn.textContent = 'Save ho raha hai…';
+    try {
+      const was = m.plan;
+      await G.payMember(m.id, { plan, amount: a, mode, from });
+      toast(`${m.name}: ${money(a)} ${mode}${was !== plan ? `, plan ${was} → ${plan}` : ''}. Agli due ${nice(m.due)}`);
+      closeSheet(); render();
+    } catch (err) { fail(err); }
+    finally { btn.disabled = false; btn.textContent = 'Paid save karo'; }
   });
   render();
 })();
