@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gym Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<header id="nav"></header>
+<main class="band">
+  <p class="sub" id="date"></p>
+  <h1 id="headline">Dashboard</h1>
+  <section class="kpis" id="kpis"></section>
+  <div class="grid2">
+    <section class="panel">
+      <h2>Collection, last 6 months</h2>
+      <div class="bars" id="chart"></div>
+    </section>
+    <section class="panel">
+      <h2>Action chahiye</h2>
+      <ul class="list" id="action"></ul>
+      <a class="btn red" href="reminders.html">Reminders bhejo</a>
+    </section>
+  </div>
+  <p class="note">Sample data, sirf prototype ke liye. <button class="btn ghost sm" id="reset" type="button">Reset data</button></p>
+</main>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="data.js"></script>
+<script>
+(async () => {
+  const { status, money, esc, dueText, today, reset } = G;
+  if (!(await G.boot('index.html'))) return;
+  if (G.live) document.getElementById('reset').hidden = true;
+  const render = () => {
+    const ms = G.db.members;
+    const over = ms.filter(m => status(m) === 'overdue');
+    const soon = ms.filter(m => status(m) === 'due');
+    const pending = over.reduce((s,m) => s + m.fee, 0);
+    const ym = G.iso(today).slice(0,7);
+    const thisMonth = G.db.payments.filter(p => p.date.startsWith(ym)).reduce((s,p) => s + p.amt, 0);
+
+    document.getElementById('date').textContent = today.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    document.getElementById('headline').textContent = over.length
+      ? `${money(pending)} pending hai, ${over.length} members ki fees late hai`
+      : 'Sabki fees time pe hai 💪';
+
+    const k = [
+      ['Active members', ms.length, 'kul registered', 'var(--green)'],
+      ['Is mahine collection', money(thisMonth), 'ab tak', 'var(--blue)'],
+      ['Overdue', over.length, money(pending) + ' baaki', 'var(--red)'],
+      ['7 din mein due', soon.length, money(soon.reduce((s,m)=>s+m.fee,0)) + ' aane wale', 'var(--yellow)']
+    ];
+    document.getElementById('kpis').innerHTML = k.map(([l,v,s,c]) =>
+      `<div class="kpi" style="--c:${c}"><span>${l}</span><b>${esc(v)}</b><small>${esc(s)}</small></div>`).join('');
+
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
+      const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      months.push({ label: d.toLocaleDateString('en-IN', { month:'short' }), total: G.db.payments.filter(p => p.date.startsWith(key)).reduce((s,p)=>s+p.amt,0), now: i === 0 });
+    }
+    const max = Math.max(...months.map(m => m.total), 1);
+    document.getElementById('chart').innerHTML = months.map(m =>
+      `<div class="col${m.now ? ' now' : ''}"><span class="v">${money(Math.round(m.total/1000))}k</span><div class="b" style="height:${(m.total/max*80).toFixed(1)}%"></div><span class="m">${m.label}</span></div>`).join('');
+
+    const act = [...over, ...soon].sort((a,b) => a.due.localeCompare(b.due)).slice(0, 7);
+    document.getElementById('action').innerHTML = act.length ? act.map(m =>
+      `<li><span><span class="who">${esc(m.name)}</span><span class="meta">${esc(m.plan)} · ${money(m.fee)}</span></span><span class="chip ${status(m)}">${dueText(m)}</span></li>`).join('')
+      : '<li class="empty">Koi pending nahi</li>';
+  };
+  render();
+  document.getElementById('reset').addEventListener('click', () => { reset(); render(); G.toast('Sample data reset ho gaya'); });
+})();
+</script>
+</body></html>

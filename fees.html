@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gym Fees</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<header id="nav"></header>
+<main class="band">
+  <h1 id="title">Fees</h1>
+  <div class="tabs" role="tablist">
+    <button class="btn ghost" role="tab" id="tPending" aria-selected="true" type="button">Pending</button>
+    <button class="btn ghost" role="tab" id="tPaid" aria-selected="false" type="button">Is mahine paid</button>
+  </div>
+  <div class="tablewrap">
+    <table class="stack">
+      <thead id="head"></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="note">"Paid" dabane pe agli due date plan ke hisaab se aage badh jaati hai. Sample data, sirf prototype ke liye.</p>
+</main>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="data.js"></script>
+<script>
+(async () => {
+  const { status, money, esc, nice, dueText, LABEL, toast, today, fail } = G;
+  if (!(await G.boot('fees.html'))) return;
+  let tab = 'pending';
+  const ym = G.iso(today).slice(0,7);
+
+  const render = () => {
+    const ms = G.db.members;
+    const pend = ms.filter(m => status(m) !== 'active').sort((a,b) => a.due.localeCompare(b.due));
+    const paid = G.db.payments.filter(p => p.date.startsWith(ym)).sort((a,b) => b.date.localeCompare(a.date));
+    document.getElementById('tPending').setAttribute('aria-selected', tab === 'pending');
+    document.getElementById('tPaid').setAttribute('aria-selected', tab === 'paid');
+    const head = document.getElementById('head'), rows = document.getElementById('rows');
+
+    if (tab === 'pending') {
+      const over = pend.filter(m => status(m) === 'overdue').reduce((s,m) => s + m.fee, 0);
+      document.getElementById('title').textContent = `${money(over)} overdue, ${pend.length} log pending`;
+      head.innerHTML = '<tr><th>Naam</th><th>Plan</th><th class="num">Amount</th><th>Due</th><th>Status</th><th></th></tr>';
+      rows.innerHTML = pend.length ? pend.map(m => `<tr>
+        <td><b>${esc(m.name)}</b></td><td>${esc(m.plan)}</td><td class="num">${money(m.fee)}</td>
+        <td>${nice(m.due)} <span class="sub">· ${dueText(m)}</span></td>
+        <td><span class="chip ${status(m)}">${LABEL[status(m)]}</span></td>
+        <td><button class="btn sm" data-pay="${m.id}" type="button">Paid ✓</button></td></tr>`).join('')
+        : '<tr><td colspan="6" class="empty">Sab clear hai</td></tr>';
+    } else {
+      const total = paid.reduce((s,p) => s + p.amt, 0);
+      document.getElementById('title').textContent = `Is mahine ${money(total)} aaye`;
+      head.innerHTML = '<tr><th>Naam</th><th>Date</th><th class="num">Amount</th><th>Status</th></tr>';
+      rows.innerHTML = paid.length ? paid.map(p => {
+        const m = ms.find(x => x.id === p.id);
+        return `<tr><td><b>${esc(m ? m.name : 'Purana member')}</b></td><td>${nice(p.date)}</td><td class="num">${money(p.amt)}</td><td><span class="chip paid">Paid</span></td></tr>`;
+      }).join('') : '<tr><td colspan="4" class="empty">Is mahine abhi tak koi payment nahi</td></tr>';
+    }
+  };
+
+  document.getElementById('tPending').addEventListener('click', () => { tab = 'pending'; render(); });
+  document.getElementById('tPaid').addEventListener('click', () => { tab = 'paid'; render(); });
+  document.getElementById('rows').addEventListener('click', async e => {
+    const b = e.target.closest('[data-pay]'); if (!b) return;
+    const m = G.db.members.find(x => x.id === +b.dataset.pay);
+    b.disabled = true;
+    try { await G.markPaid(m.id); toast(`${m.name}: ${money(m.fee)} paid, agli due ${nice(m.due)}`); }
+    catch (err) { fail(err); b.disabled = false; return; }
+    render();
+  });
+  render();
+})();
+</script>
+</body></html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fee Reminders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<header id="nav"></header>
+<main class="band">
+  <h1 id="title">Reminders</h1>
+  <div class="grid2">
+    <section class="panel">
+      <h2>Kisko bhejna hai</h2>
+      <div class="tools">
+        <label class="sub" for="win">Dikhao:</label>
+        <select id="win"><option value="3">Overdue + 3 din mein due</option><option value="7">Overdue + 7 din mein due</option><option value="-1">Sirf overdue</option></select>
+      </div>
+      <ul class="list" id="list"></ul>
+    </section>
+    <section class="panel">
+      <h2>Message template</h2>
+      <textarea id="tpl" aria-label="Reminder message template"></textarea>
+      <p class="sub" style="font-size:14px">Ye use kar sakte ho: {name} {amount} {date} {plan}</p>
+      <div class="tools" style="margin-top:12px">
+        <button class="btn" id="saveTpl" type="button">Template save karo</button>
+        <button class="btn ghost" id="copyList" type="button">Poori list copy karo</button>
+      </div>
+      <p class="note">WhatsApp button tumhare phone ka WhatsApp kholta hai, message pehle se likha hota hai. Ye free hai, koi API cost nahi lagti.</p>
+    </section>
+  </div>
+  <p class="note">Sample data, sirf prototype ke liye.</p>
+</main>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="data.js"></script>
+<script>
+(async () => {
+  const { status, money, esc, nice, dueText, daysLeft, toast, fail } = G;
+  if (!(await G.boot('reminders.html'))) return;
+  const tpl = document.getElementById('tpl'), win = document.getElementById('win');
+  tpl.value = G.db.template;
+
+  const fill = (t, m) => t.replace(/\{name\}/g, m.name.split(' ')[0]).replace(/\{amount\}/g, m.fee.toLocaleString('en-IN'))
+    .replace(/\{date\}/g, nice(m.due)).replace(/\{plan\}/g, m.plan);
+  const targets = () => G.db.members.filter(m => daysLeft(m) <= +win.value).sort((a,b) => a.due.localeCompare(b.due));
+
+  const render = () => {
+    const list = targets();
+    const left = list.filter(m => !G.db.sent[m.id]).length;
+    document.getElementById('title').textContent = `${left} reminders bhejne baaki`;
+    document.getElementById('list').innerHTML = list.length ? list.map(m => {
+      const url = 'https://wa.me/91' + encodeURIComponent(m.phone) + '?text=' + encodeURIComponent(fill(tpl.value, m));
+      const sent = G.db.sent[m.id];
+      return `<li><span><span class="who">${esc(m.name)}</span><span class="meta">${money(m.fee)} · <span class="chip ${status(m)}">${dueText(m)}</span>${sent ? ' · bheja ' + esc(nice(sent)) : ''}</span></span>
+        <a class="btn sm ${sent ? 'ghost' : 'red'}" href="${url}" target="_blank" rel="noopener" data-id="${m.id}">${sent ? 'Dobara' : 'WhatsApp'}</a></li>`;
+    }).join('') : '<li class="empty">Abhi kisi ko reminder nahi chahiye</li>';
+  };
+
+  document.getElementById('list').addEventListener('click', e => {
+    const a = e.target.closest('[data-id]'); if (!a) return;
+    G.markSent(+a.dataset.id).catch(fail).finally(() => setTimeout(render, 50));
+  });
+  win.addEventListener('change', render);
+  tpl.addEventListener('input', render);
+  document.getElementById('saveTpl').addEventListener('click', async () => {
+    try { await G.saveTemplate(tpl.value); toast('Template save ho gaya'); } catch (err) { fail(err); }
+  });
+  document.getElementById('copyList').addEventListener('click', async () => {
+    const text = 'Fees reminder list:\n' + targets().map(m => `• ${m.name} (${m.phone}): ${money(m.fee)}, ${dueText(m)}`).join('\n');
+    try { await navigator.clipboard.writeText(text); toast('List copy ho gayi'); } catch { toast('Copy nahi hua, browser ne mana kar diya'); }
+  });
+  render();
+})();
+</script>
+</body></html>
