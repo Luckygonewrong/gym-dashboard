@@ -209,6 +209,7 @@ create table if not exists private.export_tokens (
   created_at timestamptz not null default now(),
   revoked    boolean not null default false
 );
+alter table private.export_tokens enable row level security;  -- sirf functions (owner) padhte hain
 
 create or replace function private.check_token(p_token text)
 returns void
