@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Iron House Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1795539014"></head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="admin.html"><span class="plates" aria-hidden="true"><i></i><i></i><i></i></span>Iron House · Admin</a>
+  <span class="acct"><a class="out" href="login.html" id="logout">Log out</a></span>
+</div></header>
+<main class="band">
+  <p class="sub" id="date"></p>
+  <h1 id="headline">Gyms</h1>
+  <section class="kpis" id="kpis"></section>
+
+  <div class="tools">
+    <input id="q" type="search" placeholder="Gym, owner ya phone se dhoondo" aria-label="Search gyms" style="flex:1 1 220px">
+    <select id="filter" aria-label="Status filter">
+      <option value="">Sab status</option><option value="Trial">Trial</option><option value="Paid">Paid</option><option value="Expired">Expired</option>
+    </select>
+    <button class="btn red" id="addBtn" type="button" aria-expanded="false" aria-controls="addForm">+ Naya gym</button>
+  </div>
+
+  <form class="form panel" id="addForm" hidden>
+    <label>Gym ka naam<input id="gName" required maxlength="80"></label>
+    <label>Owner ka naam<input id="gOwner" required maxlength="80"></label>
+    <label>Owner ka email (isi se login banega)<input id="gEmail" type="email" required></label>
+    <label>Phone (optional)<input id="gPhone" inputmode="numeric" pattern="[6-9][0-9]{9}"></label>
+    <label>City / area<input id="gCity" maxlength="60" placeholder="e.g. Greater Noida"></label>
+    <label>Trial start<input id="gStart" type="date" required></label>
+    <label>Monthly price (₹)<input id="gPrice" type="number" inputmode="numeric" min="0" step="1" value="2000" required></label>
+    <button class="btn" type="submit">Gym save karo</button>
+  </form>
+
+  <div class="tablewrap">
+    <table class="stack">
+      <thead><tr><th>Gym</th><th>Owner</th><th>Plan</th><th>Login</th><th>Members</th><th class="num">Is mahine collection</th><th class="num">Tumhe mila</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <section class="panel" id="detail" hidden style="margin-top:16px">
+    <div class="tools" style="justify-content:space-between;margin-bottom:8px"><h2 id="dTitle" style="margin:0"></h2><button class="btn ghost sm" id="dClose" type="button">Band karo</button></div>
+    <div class="tablewrap">
+      <table class="stack">
+        <thead><tr><th>Member</th><th>Phone</th><th>Plan</th><th class="num">Fee</th><th>Due</th><th>Status</th></tr></thead>
+        <tbody id="dRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="grid2" style="margin-top:24px">
+    <section class="panel">
+      <h2>Excel download</h2>
+      <p class="sub">Ek file, do sheets: <b>Gyms</b> aur <b>Members</b> (har gym ke saare members). Abhi ka data.</p>
+      <button class="btn red" id="xlsx" type="button">Excel download karo</button>
+    </section>
+    <section class="panel">
+      <h2>Live Excel (laptop pe apne aap update)</h2>
+      <p class="sub">Ek secret link banta hai. Excel usse data kheenchta hai, aur Refresh dabane pe (ya file kholte hi) naya data aa jaata hai.</p>
+      <div class="actions">
+        <button class="btn" id="tokBtn" type="button">Naya Excel link banao</button>
+        <button class="btn ghost" id="revokeBtn" type="button">Saare links band karo</button>
+      </div>
+      <div id="tokOut" hidden style="margin-top:14px;display:grid;gap:10px">
+        <p class="sub" style="margin:0"><b>Ye code sirf abhi dikhega.</b> Kisi ko mat bhejna. Leak ho jaye toh "Saare links band karo" dabao.</p>
+        <ol class="sub" style="margin:0;padding-left:20px">
+          <li>Excel → <b>Data → Get Data → From Other Sources → Blank Query</b></li>
+          <li><b>Advanced Editor</b> kholo, neeche wala "Gyms" code paste karo → Done. Query ka naam <b>Gyms</b> rakho → <b>Close &amp; Load</b>.</li>
+          <li>Phir se Blank Query, "Members" code paste karo, naam <b>Members</b>.</li>
+          <li>Privacy/credentials pucche toh <b>Anonymous</b> aur <b>Ignore privacy levels</b> chuno.</li>
+          <li>Har query → <b>Properties</b> → "Refresh data when opening the file" aur "Refresh every 30 minutes" on.</li>
+        </ol>
+        <div class="tools" style="margin:0"><b>Gyms</b><button class="btn ghost sm" type="button" data-copy="mGyms">Copy</button></div>
+        <pre id="mGyms" class="code"></pre>
+        <div class="tools" style="margin:0"><b>Members</b><button class="btn ghost sm" type="button" data-copy="mMembers">Copy</button></div>
+        <pre id="mMembers" class="code"></pre>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="sheet" id="sheet" hidden>
+  <form class="panel" id="payForm" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+    <div><h2 id="pTitle">Payment</h2><p class="sub" id="pSub" style="margin:4px 0 0"></p></div>
+    <label>Amount (₹)<input id="pAmt" type="number" inputmode="numeric" min="0" step="1" required></label>
+    <label>Kitne din ke liye<input id="pDays" type="number" inputmode="numeric" min="1" step="1" value="30" required></label>
+    <div class="grp"><span>Kaise diye?</span><div class="seg" id="pModes"></div></div>
+    <div class="preview" id="pPrev" aria-live="polite"></div>
+    <div class="actions">
+      <button class="btn red" type="submit" id="pSave">Payment save karo</button>
+      <button class="btn ghost" type="button" id="pCancel">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<script src="config.js?v=1795539014"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="data.js?v=1795539014"></script>
+<script>
+(async () => {
+  const { sb, money, esc, nice, iso, today, toast, fail } = G;
+  const $ = id => document.getElementById(id);
+  if (!G.ready) return toast('config.js mein Supabase url/key nahi hai');
+  if (!(await G.loggedIn())) { location.href = 'login.html'; return; }
+  $('logout').addEventListener('click', async e => { e.preventDefault(); await G.signOut(); location.href = 'login.html'; });
+  if (!(await G.isAdmin())) { location.href = 'index.html'; return; }
+
+  const must = r => { if (r.error) throw r.error; return r.data; };
+  let gyms = [], open = null;
+  const load = async () => { gyms = must(await sb.rpc('admin_gym_overview')); };
+  const addDays = (s, n) => G.addDays(s, n);
+  const CHIP = { Trial:'due', Paid:'active', Expired:'overdue' };
+  const planText = g => g.status === 'Trial' ? `Trial · ${g.days_left} din baaki (${nice(g.trial_end)} tak)`
+    : g.status === 'Paid' ? `${money(g.monthly_price)}/mahina · ${nice(g.paid_until)} tak`
+    : `Band · ${-g.days_left} din pehle khatam`;
+
+  const render = () => {
+    $('date').textContent = today.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    const by = s => gyms.filter(g => g.status === s);
+    const mrr = by('Paid').reduce((t, g) => t + g.monthly_price, 0);
+    const ending = by('Trial').filter(g => g.days_left <= 2).length;
+    $('headline').textContent = gyms.length
+      ? `${gyms.length} gym jude, ${money(mrr)}/mahina aa raha hai`
+      : 'Abhi koi gym nahi juda. Pehla gym add karo.';
+    const k = [
+      ['Kul gyms', gyms.length, `${gyms.filter(g => g.login_created).length} ka login bana`, 'var(--ink)'],
+      ['Trial', by('Trial').length, ending ? `${ending} ka trial 2 din mein khatam` : '7 din free', 'var(--yellow)'],
+      ['Paid', by('Paid').length, money(mrr) + ' / mahina', 'var(--green)'],
+      ['Expired', by('Expired').length, 'payment nahi aaya', 'var(--red)'],
+      ['Tumhe ab tak mila', money(gyms.reduce((t, g) => t + Number(g.paid_to_you), 0)), 'saare gyms se', 'var(--blue)']
+    ];
+    $('kpis').innerHTML = k.map(([l,v,s,c]) => `<div class="kpi" style="--c:${c}"><span>${l}</span><b>${esc(v)}</b><small>${esc(s)}</small></div>`).join('');
+
+    const s = $('q').value.trim().toLowerCase(), f = $('filter').value;
+    const list = gyms.filter(g => (!f || g.status === f) &&
+      (!s || [g.gym_name, g.owner_name, g.owner_email, g.phone, g.city].some(x => (x || '').toLowerCase().includes(s))));
+    $('rows').innerHTML = list.length ? list.map(g => `<tr>
+      <td><b>${esc(g.gym_name)}</b>${g.city ? `<span class="sub"> · ${esc(g.city)}</span>` : ''}</td>
+      <td>${esc(g.owner_name)}<br><span class="sub">${esc(g.owner_email)}${g.phone ? ' · ' + esc(g.phone) : ''}</span></td>
+      <td><span class="chip ${CHIP[g.status]}">${esc(g.status)}</span><br><span class="sub">${esc(planText(g))}</span></td>
+      <td>${g.login_created ? `✓${g.last_login ? `<span class="sub"> · last ${nice(g.last_login)}</span>` : ''}` : '<span class="chip due">Login banana hai</span>'}</td>
+      <td>${g.members}${g.overdue_members ? `<br><span class="sub">${g.overdue_members} overdue · ${money(g.pending_amount)}</span>` : ''}</td>
+      <td class="num">${money(g.collected_this_month)}</td>
+      <td class="num">${money(g.paid_to_you)}</td>
+      <td><span class="tools" style="margin:0;flex-wrap:nowrap"><button class="btn sm" data-pay="${g.gym_id}" type="button">Payment mila</button><button class="btn ghost sm" data-view="${g.gym_id}" type="button">Data</button><button class="btn ghost sm" data-del="${g.gym_id}" type="button">Hatao</button></span></td>
+    </tr>`).join('') : `<tr><td colspan="8" class="empty">${gyms.length ? 'Koi gym nahi mila' : 'Upar "+ Naya gym" dabao'}</td></tr>`;
+  };
+
+  // ---- naya gym ----
+  const form = $('addForm'), addBtn = $('addBtn');
+  $('gStart').value = iso(today);
+  addBtn.addEventListener('click', () => { form.hidden = !form.hidden; addBtn.setAttribute('aria-expanded', !form.hidden); if (!form.hidden) $('gName').focus(); });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = form.querySelector('button'); btn.disabled = true;
+    try {
+      must(await sb.from('gyms').insert({
+        gym_name: $('gName').value.trim(), owner_name: $('gOwner').value.trim(),
+        owner_email: $('gEmail').value.trim().toLowerCase(), phone: $('gPhone').value.trim() || null,
+        city: $('gCity').value.trim() || null, trial_start: $('gStart').value, monthly_price: Math.round(+$('gPrice').value)
+      }));
+      toast('Gym add ho gaya. Ab Supabase mein isi email se uska login banao.');
+      form.reset(); $('gStart').value = iso(today); $('gPrice').value = 2000; form.hidden = true;
+      await load(); render();
+    } catch (err) { fail(err.code === '23505' ? new Error('Ye email pehle se kisi gym ka hai') : err); }
+    finally { btn.disabled = false; }
+  });
+
+  // ---- gym ka data ----
+  const showDetail = async id => {
+    const g = gyms.find(x => x.gym_id === id); if (!g) return;
+    open = id;
+    $('dTitle').textContent = `${g.gym_name}: members`;
+    $('dRows').innerHTML = '<tr><td colspan="6" class="empty">Load ho raha hai…</td></tr>';
+    $('detail').hidden = false; $('detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    try {
+      const ms = must(await sb.rpc('admin_members_export')).filter(m => m.owner_email.toLowerCase() === g.owner_email.toLowerCase());
+      const chip = { Overdue:'overdue', 'Due soon':'due', Active:'active' };
+      $('dRows').innerHTML = ms.length ? ms.map(m => `<tr><td><b>${esc(m.member_name)}</b></td><td>${esc(m.phone)}</td><td>${esc(m.plan)}</td>
+        <td class="num">${money(m.fee)}</td><td>${nice(m.due)}</td><td><span class="chip ${chip[m.status]}">${esc(m.status)}</span></td></tr>`).join('')
+        : `<tr><td colspan="6" class="empty">${g.login_created ? 'Is gym mein abhi koi member nahi' : 'Is gym ka login abhi bana nahi'}</td></tr>`;
+    } catch (err) { fail(err); }
+  };
+  $('dClose').addEventListener('click', () => { $('detail').hidden = true; open = null; });
+
+  // ---- payment sheet ----
+  const sheet = $('sheet'); let cur = null, mode = 'Online', lastBtn = null;
+  const drawPay = () => {
+    $('pModes').innerHTML = ['Online','Cash'].map(x => `<button type="button" data-mode="${x}" aria-pressed="${x === mode}">${x}</button>`).join('');
+    const days = Math.max(1, Math.round(+$('pDays').value || 30));
+    const from = [cur.paid_until || cur.trial_end, iso(today)].sort().pop();
+    $('pPrev').innerHTML = `<span>Naya plan chalega</span><b>${nice(addDays(from, days))} tak</b><span>${cur.status === 'Trial' ? 'Trial khatam hone ke baad se gina' : cur.status === 'Paid' ? 'Abhi ke plan ke baad se gina' : 'Aaj se gina'}</span>`;
+  };
+  const openPay = (g, btn) => {
+    cur = g; mode = 'Online'; lastBtn = btn;
+    $('pTitle').textContent = `${g.gym_name}: payment`;
+    $('pSub').textContent = `${g.owner_name} · ${planText(g)}`;
+    $('pAmt').value = g.monthly_price; $('pDays').value = 30;
+    drawPay(); sheet.hidden = false; $('pSave').focus();
+  };
+  const closePay = () => { sheet.hidden = true; cur = null; lastBtn?.focus(); };
+  $('pDays').addEventListener('input', drawPay);
+  $('pModes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) { mode = b.dataset.mode; drawPay(); } });
+  $('pCancel').addEventListener('click', closePay);
+  sheet.addEventListener('click', e => { if (e.target === sheet) closePay(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) closePay(); });
+  $('payForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = $('pSave'), g = cur; btn.disabled = true;
+    try {
+      const till = must(await sb.rpc('admin_gym_paid', { p_gym: g.gym_id, p_amount: Math.round(+$('pAmt').value), p_days: Math.round(+$('pDays').value), p_mode: mode }));
+      toast(`${g.gym_name}: ${money(+$('pAmt').value)} mila. Plan ${nice(till)} tak`);
+      closePay(); await load(); render();
+    } catch (err) { fail(err); }
+    finally { btn.disabled = false; }
+  });
+
+  // ---- table buttons ----
+  let pendingDel = null;
+  $('rows').addEventListener('click', async e => {
+    const pay = e.target.closest('[data-pay]'), view = e.target.closest('[data-view]'), del = e.target.closest('[data-del]');
+    if (pay) openPay(gyms.find(g => g.gym_id === +pay.dataset.pay), pay);
+    if (view) showDetail(+view.dataset.view);
+    if (del) {
+      const id = +del.dataset.del;
+      if (pendingDel !== id) { pendingDel = id; del.textContent = 'Pakka?'; del.classList.add('red'); return; }
+      pendingDel = null; del.disabled = true;
+      try { must(await sb.from('gyms').delete().eq('id', id)); toast('Gym list se hata diya (uska login aur data waise hi hai)'); if (open === id) $('detail').hidden = true; await load(); render(); }
+      catch (err) { fail(err); }
+    }
+  });
+  $('q').addEventListener('input', render);
+  $('filter').addEventListener('change', render);
+
+  // ---- Excel download ----
+  $('xlsx').addEventListener('click', async () => {
+    if (!window.XLSX) return toast('Excel library load nahi hui, page refresh karo');
+    const btn = $('xlsx'); btn.disabled = true;
+    try {
+      const members = must(await sb.rpc('admin_members_export'));
+      const gymRows = gyms.map(g => ({
+        'Gym': g.gym_name, 'Owner': g.owner_name, 'Email': g.owner_email, 'Phone': g.phone || '', 'City': g.city || '',
+        'Status': g.status, 'Trial start': g.trial_start, 'Trial end': g.trial_end, 'Paid till': g.paid_until || '',
+        'Days left': g.days_left, 'Price / month': g.monthly_price, 'Login bana': g.login_created ? 'Haan' : 'Nahi',
+        'Last login': g.last_login || '', 'Members': Number(g.members), 'Overdue members': Number(g.overdue_members),
+        'Pending (gym ka)': Number(g.pending_amount), 'Is mahine collection (gym ka)': Number(g.collected_this_month),
+        'Tumhe mila': Number(g.paid_to_you)
+      }));
+      const memberRows = members.map(m => ({ 'Gym': m.gym_name, 'Member': m.member_name, 'Phone': m.phone, 'Plan': m.plan,
+        'Fee': m.fee, 'Due': m.due, 'Status': m.status, 'Days left': m.days_left }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(gymRows), 'Gyms');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(memberRows), 'Members');
+      XLSX.writeFile(wb, `iron-house-${iso(today)}.xlsx`);
+    } catch (err) { fail(err); }
+    finally { btn.disabled = false; }
+  });
+
+  // ---- Live Excel link ----
+  const mCode = (fn, tok) => `let
+    Source = Web.Contents("${GYM_CONFIG.url}/rest/v1/rpc/${fn}",
+        [Query = [p_token = "${tok}"], Headers = [apikey = "${GYM_CONFIG.anonKey}", Accept = "text/csv"]]),
+    Csv = Csv.Document(Source, [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+    Data = Table.PromoteHeaders(Csv, [PromoteAllScalars = true])
+in
+    Data`;
+  $('tokBtn').addEventListener('click', async () => {
+    const btn = $('tokBtn'); btn.disabled = true;
+    try {
+      const tok = must(await sb.rpc('admin_new_export_token', { p_label: 'Excel ' + iso(today) }));
+      $('mGyms').textContent = mCode('export_gyms', tok);
+      $('mMembers').textContent = mCode('export_members', tok);
+      $('tokOut').hidden = false;
+    } catch (err) { fail(err); }
+    finally { btn.disabled = false; }
+  });
+  let revokeArmed = false;
+  $('revokeBtn').addEventListener('click', async () => {
+    const btn = $('revokeBtn');
+    if (!revokeArmed) { revokeArmed = true; btn.textContent = 'Pakka? Purane Excel band ho jayenge'; btn.classList.add('red'); return; }
+    revokeArmed = false; btn.textContent = 'Saare links band karo'; btn.classList.remove('red');
+    try { const n = must(await sb.rpc('admin_revoke_export_tokens')); $('tokOut').hidden = true; toast(`${n} link band kar diye`); }
+    catch (err) { fail(err); }
+  });
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-copy]'); if (!b) return;
+    try { await navigator.clipboard.writeText($(b.dataset.copy).textContent); toast('Copy ho gaya'); }
+    catch { toast('Copy nahi hua, haath se select karke copy karo'); }
+  });
+
+  try { await load(); } catch (err) { fail(err); }
+  render();
+})();
+</script>
+</body></html>

@@ -131,3 +131,6 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .acct a[aria-current]{color:#fff;text-decoration:underline}
 .fees{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
 .fees label{display:grid;gap:4px;font-size:14px;color:var(--mute)}
+
+/* admin: Excel code */
+pre.code{margin:0;background:var(--rubber);color:#e8e6df;padding:12px 14px;border-radius:8px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;overflow-x:auto;white-space:pre}

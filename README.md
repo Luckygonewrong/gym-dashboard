@@ -29,11 +29,21 @@ Static site (GitHub Pages) + Supabase (database + login). Total cost: ₹0.
 | `fees.html` | Pending fees, "Paid" form: plan, Cash/Online, aaj se ya due date se (`record_payment` RPC). Plan: Monthly 30 din, Quarterly 90, Half-yearly 180, Yearly 365 |
 | `reminders.html` | WhatsApp `wa.me` links, message template |
 | `settings.html` | Har owner ki apni plan fees |
+| `admin.html` | **Iron House admin (sirf tum):** kitne gym jude, 7 din trial, ₹2000/month, har gym ka data, Excel download + live Excel link |
 | `data.js` | Supabase data layer + helpers |
 | `schema.sql` | Poora current schema: tables, RLS, functions |
 | `migrations/` | Live database ke liye step-by-step badlav |
 | `tests/` | Due date aur payment logic ke tests |
 | `tools/bump-version.sh` | Cache-busting |
+
+## Admin (Iron House)
+
+- Apne liye ek alag login banao (gym owner wala nahi). Phir SQL Editor mein:
+  `insert into public.admins (user_id) select id from auth.users where lower(email) = lower('tumhara@email.com');`
+- Admin login karega toh seedha `admin.html` khulega. Gym owners ko ye page nahi dikhta (database bhi mana karta hai).
+- Naya gym: admin page pe "+ Naya gym" (trial yahin se shuru), phir Supabase mein usi email se owner ka login banao.
+- Trial 7 din (start ka din bhi gina). "Payment mila" dabane pe plan trial/purane plan ke baad se 30 din aage.
+- Live Excel: admin page pe "Naya Excel link banao", code Excel ke Power Query mein paste. Link sirf padh sakta hai; leak ho toh "Saare links band karo".
 
 ## Tests
 

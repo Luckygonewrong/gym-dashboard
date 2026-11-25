@@ -27,13 +27,14 @@
   document.getElementById('mode').textContent = G.ready
     ? 'Account sirf Supabase dashboard se banta hai. Naya signup band hai.'
     : 'Setup adhoora hai: config.js mein Supabase url aur key daalo.';
-  if (G.ready && await G.loggedIn()) location.href = 'index.html';
+  const home = async () => location.href = (await G.isAdmin()) ? 'admin.html' : 'index.html';
+  if (G.ready && await G.loggedIn()) home();
 
   f.addEventListener('submit', async e => {
     e.preventDefault(); err.textContent = ''; go.disabled = true; go.textContent = 'Login ho raha hai…';
     try {
       await G.signIn(document.getElementById('u').value.trim(), document.getElementById('p').value);
-      location.href = 'index.html';
+      await home();
     } catch (e2) {
       err.textContent = /invalid/i.test(e2?.message || '') ? 'Email ya password galat hai' : (e2?.message || 'Login fail hua');
       go.disabled = false; go.textContent = 'Login';

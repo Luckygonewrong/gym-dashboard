@@ -95,8 +95,16 @@ async function saveFees(fees){
 
 // ---------- auth ----------
 async function signIn(email, password){ must(await sb.auth.signInWithPassword({ email, password })); }
-async function signOut(){ await sb.auth.signOut(); }
+async function signOut(){ try { sessionStorage.removeItem('ih-admin'); } catch {} await sb.auth.signOut(); }
 async function loggedIn(){ return !!(await sb.auth.getSession()).data.session; }
+// Iron House admin (tum) ho ya gym owner. Migration se pehle function na ho toh false.
+async function isAdmin(){
+  const uid = (await sb.auth.getSession()).data.session?.user?.id; if (!uid) return false;
+  try { const c = sessionStorage.getItem('ih-admin'); if (c) { const [u, v] = c.split(':'); if (u === uid) return v === '1'; } } catch {}
+  const r = await sb.rpc('is_admin'); const v = !r.error && r.data === true;
+  try { sessionStorage.setItem('ih-admin', uid + ':' + (v ? 1 : 0)); } catch {}
+  return v;
+}
 
 // ---------- helpers ----------
 const daysLeft = m => Math.round((new Date(m.due+'T00:00:00') - today) / DAY);
@@ -125,6 +133,7 @@ setInterval(freshDay, 10 * 60 * 1000);
 async function boot(cur){
   if (!ready) { toast('config.js mein Supabase url/key nahi hai'); return false; }
   if (!(await loggedIn())) { location.href = 'login.html'; return false; }
+  if (await isAdmin()) { location.href = 'admin.html'; return false; }
   const links = [['index.html','Dashboard'],['members.html','Members'],['fees.html','Fees'],['reminders.html','Reminders']];
   document.getElementById('nav').innerHTML = `<div class="bar">
     <a class="brand" href="index.html"><span class="plates" aria-hidden="true"><i></i><i></i><i></i></span>Iron House Gym</a>
@@ -139,6 +148,6 @@ async function boot(cur){
 new MutationObserver(() => { for (const c of document.querySelectorAll('.stack td:not([data-l])')) { let i=0,p=c; while (p = p.previousElementSibling) i += p.colSpan; c.dataset.l = c.closest('table').rows[0].cells[i]?.textContent || ''; } })
   .observe(document, { childList:true, subtree:true });
 
-window.G = { ready, PLANS, PLAN_NAMES, DEFAULT_FEES, today, iso, addDays, boot, daysLeft, status, LABEL, money, esc, nice, dueText, nextDue,
+window.G = { sb, isAdmin, signOut, ready, PLANS, PLAN_NAMES, DEFAULT_FEES, today, iso, addDays, boot, daysLeft, status, LABEL, money, esc, nice, dueText, nextDue,
   addMember, deleteMember, payMember, markSent, saveTemplate, saveFees, signIn, loggedIn, toast, fail, get db(){ return db; } };
 }
